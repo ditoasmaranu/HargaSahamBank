@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harga Saham</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f9f9f9;
+        }
+
+        h1 {
+            text-align: center;
+            margin-top: 0;
+            padding-top: 20px;
+        }
+
+        .class-button {
+            background-color: #333;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Harga Saham Bank Di Indonesia</h1>
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Symbol</th>
+                    <th>Open</th>
+                    <th>High</th>
+                    <th>Low</th>
+                    <th>Close</th>
+                    <th>Volume</th>
+                </tr>
+            </thead>
+            <tbody id="stock-data"></tbody>
+        </table>
+
+        <h2>Logging Harga Saham</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Symbol</th>
+                    <th>Open</th>
+                    <th>High</th>
+                    <th>Low</th>
+                    <th>Close</th>
+                    <th>Volume</th>
+                </tr>
+            </thead>
+            <tbody id="saved-stock-data"></tbody>
+        </table>
+
+        <button id="save-button" class="class-button">Simpan Data ke MySQL</button>
+        <a href="HargaSaham.html">Refresh and Display Data</a>
+
+    </div>
+
+    <script>
+        // mengambil data/ fetch data dari url api
+        fetch('https://api.goapi.id/v1/stock/idx/prices?symbols=BBCA%2CBBNI%2CBBSI%2CBBRI%2CBRIS%2CBBKP%2CBNII&api_key=PJi79ltgfsbRHLQOtds6yBbhBVK366')
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const stockData = data.data.results;
+                    const stockTable = document.getElementById('stock-data');
+
+                    stockData.forEach(stock => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${stock.date}</td>
+                            <td>${stock.symbol}</td>
+                            <td>${stock.open}</td>
+                            <td>${stock.high}</td>
+                            <td>${stock.low}</td>
+                            <td>${stock.close}</td>
+                            <td>${stock.volume}</td>
+                        `;
+                        stockTable.appendChild(row);
+                    });
+                } else {
+                    console.log('Failed to fetch stock data');
+                }
+            })
+            .catch(error => {
+                console.log('Error:', error);
+            });
+        // Mengambila data yang dari proses file get_saved_stock_data.php
+        fetch('get_saved_stock_data.php')
+            .then(response => response.json())
+            .then(data => {
+                const savedStockData = data;
+
+                if (savedStockData.length > 0) {
+                    const savedStockTable = document.getElementById('saved-stock-data');
+
+                    savedStockData.forEach(stock => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${stock.date}</td>
+                            <td>${stock.symbol}</td>
+                            <td>${stock.open}</td>
+                            <td>${stock.high}</td>
+                            <td>${stock.low}</td>
+                            <td>${stock.close}</td>
+                            <td>${stock.volume}</td>
+                        `;
+                        savedStockTable.appendChild(row);
+                    });
+                }
+            })
+            .catch(error => {
+                console.log('Error:', error);
+            });
+
+        const saveButton = document.getElementById('save-button');
+        
+        saveButton.addEventListener('click', () => {
+            const stockData = document.querySelectorAll('#stock-data tr');
+            const dataToSave = [];
+            // Mengexport data  ke data base menggunakan metode perulangana    
+            stockData.forEach(stock => {
+                const date = stock.children[0].textContent;
+                const symbol = stock.children[1].textContent;
+                const open = stock.children[2].textContent;
+                const high = stock.children[3].textContent;
+                const low = stock.children[4].textContent;
+                const close = stock.children[5].textContent;
+                const volume = stock.children[6].textContent;
+                //push data
+                dataToSave.push({
+                    date: date,
+                    symbol: symbol,
+                    open: open,
+                    high: high,
+                    low: low,
+                    close: close,
+                    volume: volume
+                });
+            });
+            
+
+            fetch('save_stock_data.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(dataToSave)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data.message);
+            })
+            .catch(error => {
+                console.log('Error:', error);
+            });
+        });
+    </script>
+</body>
+
+</html>
